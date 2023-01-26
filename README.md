@@ -3,3 +3,5 @@
  
 # Contact
  Feel free to contact me about anything on this repository! You can email at: b8008458@newcastle.ac.uk
+ You can also find me (newly) on Twitter @_Chris_Larkin 
+
