@@ -3,6 +3,6 @@
  
 # Contact
  Feel free to contact me about anything on this repository! You can email at: b8008458@newcastle.ac.uk 
- <br />  You can also find me (newly) on Twitter twitter.com/_Chris_Larkin 
- <br />  Find out more about the Geospatial Systems CDT at https://geospatialcdt.ac.uk/
+ <br />  You can also find me (newly) on Twitter: twitter.com/_Chris_Larkin 
+ <br />  Find out more about the Geospatial Systems CDT: https://geospatialcdt.ac.uk/
 
