@@ -1,6 +1,8 @@
 # bikeNetworksEDA
  This repository is for all code and outputs relating to an exploritory data analysis of cycle networks across the globe. 
  
+ ![Image](https://github.com/Froguin99/bikeNetworksEDA/tree/main/images/BikeNetworkEDALogo.png)
+ 
 # Contact
  Feel free to contact me about anything on this repository! You can email at: b8008458@newcastle.ac.uk 
  <br />  You can also find me (newly) on twitter: https://twitter.com/_Chris_Larkin 
