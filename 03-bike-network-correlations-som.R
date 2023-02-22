@@ -14,50 +14,98 @@ library(ggcorrplot)
 # get working directory and read in file
 wd <- getwd()
 file <- paste(wd,"Data/Cleaned_Data/combined_places.csv", sep ='/')
-streets <- read.csv(file)
+comb_streets <- read.csv(file)
 
-# set place names as row names
-rownames(streets) <- streets$place
-streets$place <- NULL # remove original data frame
+file <- paste(wd,"Data/Cleaned_Data/bike_places.csv", sep ='/')
+bike_streets <- read.csv(file)
 
-# set as matrix
-streets = as.matrix(streets)
-
-
-# rescale?
-streets.sc <- scale(streets) 
-
-# change NANs to 0
-streets[is.na(streets)] <- 0
-streets.sc[is.na(streets.sc)] <- 0
-
-set.seed(7) # for repoducablity
+file <- paste(wd,"Data/Cleaned_Data/road_places.csv", sep ='/')
+road_streets <- read.csv(file)
 
 
-### create correlation plot ###
-
-ggcorrplot(cor(streets), 
-           method = c("square"), 
-           tl.cex = 5, # text size
-           tl.srt = 60, # text rotation
-           title = "Combined street network metric correlation plot") 
+### find correlations ###
 
 
+correlation_func <- function(dataframe){
+  # set a seed for repoducablity
+  set.seed(7)
+  
+  # set place names as row names
+  rownames(dataframe) <- dataframe$place
+  dataframe$place <- NULL # remove orignal data frame
+  
+  #set as a matrix and rescale
+  dataframe = as.matrix(dataframe)
+  dataframe.sc <- scale(dataframe)
+  
+  # set NANs to 0s
+  dataframe[is.na(dataframe)] <- 0
+  dataframe.sc[is.na(dataframe.sc)] <- 0
+  
+  # create correlation plot
+  ggcorrplot(cor(dataframe), 
+             method = c("square"), 
+             tl.cex = 5, # text size
+             tl.srt = 60, # text rotation
+             title = "Metric correlation plot")
+  
+  # create correlation plot
+  ggcorrplot(cor(dataframe.sc), 
+             method = c("square"), 
+             tl.cex = 5, # text size
+             tl.srt = 60, # text rotation
+             title = "Rescaled Metric correlation plot")
+}
 
+
+# call function
+correlation_func(comb_streets)
+
+correlation_func(bike_streets)
+
+correlation_func(road_streets)
+
+
+
+
+
+### create and train SOM ###
 
 
 #?som to get help guide
 
-#### train the SOM ####
+som_function <- function(dataframe){
+  # set a seed for repoducablity
+  set.seed(7)
+  
+  # set place names as row names
+  rownames(dataframe) <- dataframe$place
+  dataframe$place <- NULL # remove orignal data frame
+  
+  #set as a matrix and rescale
+  dataframe = as.matrix(dataframe)
+  dataframe.sc <- scale(dataframe)
+  
+  # set NANs to 0s
+  dataframe[is.na(dataframe)] <- 0
+  dataframe.sc[is.na(dataframe.sc)] <- 0
+  
+  # define a grid for the SOM and train
+  dataframe.som <- som(dataframe.sc, grid = somgrid(6,4, topo = "hexagonal"))
+  plot(dataframe.som, type = 'codes', codeRendering = "segments",  bgcol = "transparent", border = TRUE)
+  
+  # plot training progress
+  plot(dataframe.som, type = "changes")
+  
+}
+
+som_function(comb_streets)
+
+som_function(road_streets)
+
+som_function(bike_streets)
 
 ## define a grid for the SOM and train
-
-streets.som <- som(streets.sc, grid = somgrid(6, 4, topo =  "hexagonal"))
-plot(streets.som, main = "Streets data", type = "counts")
-plot(streets.som, main = "Streets data", type = "property", property= getCodes(streets.som)[, 6])
-
-# plot all
-plot(streets.som, type = 'codes', codeRendering="segments", bgcol = "transparent", border = TRUE) 
 
 # codeRendering = line, star etc
 
