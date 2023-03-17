@@ -6,16 +6,30 @@
 #install.packages('kohonen')
 #install.packages('tidyverse')
 #install.packages('ggcorrplot')
+install.packages('caret')
+#install.packages('factoextra')
 
-### Running the file ###
+### Running the file ### ------------------------------------------------------------------------------
 
-
+install.packages("caret")
+library(caret)
 
 # libary imports
-library(dplyr)
+#library(dplyr)
 library(ggplot2)
+library(tidyverse)
+library(kohonen)
+library(ggcorrplot)
+library(caret)
+library(factoextra)
 
-### READING IN FILES ###
+
+
+
+
+
+
+### READING IN FILES ### -----------------------------------------------------------------------------
 # get working directory and read in file
 wd <- getwd()
 file <- paste(wd,"Data/Cleaned_Data/euro_ranking.csv", sep ='/')
@@ -23,18 +37,18 @@ streets <- read.csv(file)
 
 
 
-### CLEANING ###
+### CLEANING ### -------------------------------------------------------------------------------------
 # set place as the row name
 rownames(streets) <- streets$place
 
 # remove spare column
 streets$place <- NULL
 
-# calculate proprtions
-streets$disconnected_components_bike <- streets$disconnected_components_bike/streets$street_length_total_road
+# calculate proprtions for disconnected bike components
+streets$disconnected_components_bike <- streets$disconnected_components_bike/streets$street_length_total_bike
 
 
-### PEARSON CORRELATION COEFFICIENT CREATOR ###
+### PEARSON CORRELATION COEFFICIENT CREATOR ### ------------------------------------------------------
 
 # Create an empty dataframe to store the correlation coefficients with the correct number of rows
 cor_df <- data.frame(matrix(ncol = ncol(streets), nrow = 1))
@@ -74,6 +88,16 @@ barplot(as.matrix(filtered_df),
 
 
 
+### MISC PLOTTING ### -------------------------------------------------------------------------------
+
+
+# Create an index column and remove
+streets <- streets %>% rownames_to_column(var = "index_column")
+streets <- streets %>% mutate(place_names = index_column)
+streets <- streets %>% select(-index_column)
+
+ggplot(streets, aes(x = active_mobility_ranking, y = disconnected_components_bike)) + 
+  geom_point(aes(colour = place_names), size = 4)
 
 
 
@@ -96,9 +120,7 @@ barplot(as.matrix(filtered_df),
 
 
 
-
-
-
+### SOMs ### ------------------------------------------------------------------------------------------
 
 
 
@@ -112,7 +134,13 @@ library(kohonen)
 library(ggcorrplot)
 library(dplyr)
 
-### READING IN FILES ###
+
+# Generate behaviours clusters based on two methos:
+# Self-organising maps and hierarchical clustering.
+
+
+
+### READING IN FILES ### ------------------------------------------------------------------------------
 # get working directory and read in file
 wd <- getwd()
 file <- paste(wd,"Data/Cleaned_Data/combined_places.csv", sep ='/')
@@ -125,7 +153,7 @@ file <- paste(wd,"Data/Cleaned_Data/road_places.csv", sep ='/')
 road_streets <- read.csv(file)
 
 
-### Removing surplus columns ###
+### Removing surplus columns ### ----------------------------------------------------------------------
 
 ## clean dataframes ##
 
@@ -138,6 +166,12 @@ rownames(road_streets) <- road_streets$place
 comb_streets$place <- NULL
 bike_streets$place <- NULL
 road_streets$place <- NULL
+
+# calculate proprtions for disconnected bike components
+comb_streets$disconnected_components_bike <- comb_streets$disconnected_components_bike/comb_streets$street_length_total_bike
+bike_streets$disconnected_components_bike <- bike_streets$disconnected_components_bike/bike_streets$street_length_total_bike
+road_streets$disconnected_components_bike <- road_streets$disconnected_components_bike/road_streets$street_length_total_bike
+
 
 
 if (cleaning == TRUE){
@@ -186,7 +220,7 @@ road_streets[is.na(road_streets)] <- 0
 road_streets.sc[is.na(road_streets.sc)] <- 0
 
 
-### find correlations ###
+### find correlations ### ------------------------------------------------------------------------
 
 
 correlation_func <- function(dataframe, dataframe.sc){
@@ -220,7 +254,11 @@ correlation_func(road_streets, road_streets.sc)
 
 
 
-### create and train SOM ###
+### create and train SOM ### -----------------------------------------------------------------------------
+
+
+# Hierarchical clustering -------------------------------------------------
+
 
 
 #?som to get help guide
@@ -229,9 +267,36 @@ som_function <- function(dataframe, dataframe.sc){
   # set a seed for repoducablity
   set.seed(7)
   
+  process <- preProcess(dataframe, method=c('range'))
+  norm_scale <- predict(process, dataframe)
+  norm_scale$id_pd <- behaviours$id_pd
+  norm_scale <- norm_scale %>% dplyr::select(id_pd, everything())
+  
+  # Generate matrix
+  m <- as.matrix(norm_scale[-1])
+  
+  # Distance matrix
+  distance <- get_dist(m, method='manhattan')
+  
+  # Algorithm
+  hc <- hclust(distance, method='ward.D')
+  
+  # Dendogram
+  plot(hc, labels = FALSE)
+  rect.hclust(hc,k=8,border = 2:5)
+  
+  # Clusters
+  clusters <- cutree(hc,8)
+  norm_scale$hc_cluster <- clusters
+  
+  # Results
+  results_hc <- norm_scale[-1] %>% group_by(hc_cluster) %>% 
+    dplyr::summarize_all(list(mean = mean)) %>% 
+    as.data.frame() %>% 
+    mutate(hc_cluster = as.factor(hc_cluster))
   
   # define a grid for the SOM and train
-  dataframe.som <- som(dataframe.sc, grid = somgrid(9,6, topo = "hexagonal"))
+  dataframe.som <- som(dataframe.sc, grid = somgrid(9,6, topo = "hexagonal"), rlen = 20000 )
   plot(dataframe.som, type = 'codes', codeRendering = "segments",  bgcol = "transparent", border = TRUE)
  
   
