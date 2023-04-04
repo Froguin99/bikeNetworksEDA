@@ -6,13 +6,10 @@
 #install.packages('kohonen')
 #install.packages('tidyverse')
 #install.packages('ggcorrplot')
-install.packages('caret')
 #install.packages('factoextra')
 
 ### Running the file ### ------------------------------------------------------------------------------
 
-install.packages("caret")
-library(caret)
 
 # libary imports
 #library(dplyr)
@@ -20,8 +17,6 @@ library(ggplot2)
 library(tidyverse)
 library(kohonen)
 library(ggcorrplot)
-library(caret)
-library(factoextra)
 
 
 
@@ -45,7 +40,8 @@ rownames(streets) <- streets$place
 streets$place <- NULL
 
 # calculate proprtions for disconnected bike components
-streets$disconnected_components_bike <- streets$disconnected_components_bike/streets$street_length_total_bike
+streets$disconnected_components_bike <- streets$disconnected_components_bike/streets$length_bike
+
 
 
 ### PEARSON CORRELATION COEFFICIENT CREATOR ### ------------------------------------------------------
@@ -71,20 +67,28 @@ cor_df <- cor_df[, colSums(is.na(cor_df)) != nrow(cor_df)]
 cor_df <- subset(cor_df, select = -c(active_mobility_ranking))
 
 # Filter out any columns from cor_df with a smaller absolute value than 0.5
-filtered_df <- subset(cor_df, select = -c(which(colSums(abs(cor_df) < 0.4) == nrow(cor_df))))
+filtered_df <- subset(cor_df, select = -c(which(colSums(abs(cor_df) < 0.5) == nrow(cor_df))))
 
+# save column headers from filtered df
+header_names <- colnames(filtered_df)
 
+# Create a vector of column names to keep
+cols_to_keep <- c("place", header_names)
 
+# filter streets dataframe
+streets_filtered <- streets[, colnames(streets) %in% cols_to_keep]
 
+par(mar=c(8, 5, 5, 5), bg= "white")
 # create a bar plot of correlations
 barplot(as.matrix(cor_df),
         las=2, cex.names=.5,
-        main = 'Pearson Correlation Coefficient of Indicators')
+        main = 'Pearson Correlation Coefficient between Metrics and Active Mobility Ranking',
+        col = "orange")
 
 barplot(as.matrix(filtered_df),
         las=2, cex.names=.5,
-        main = 'Pearson Correlation Coefficient of Indicators')
-
+        main = 'Pearson Correlation Coefficient of Indicators',
+        col = "orange")
 
 
 
@@ -99,6 +103,8 @@ streets <- streets %>% select(-index_column)
 ggplot(streets, aes(x = active_mobility_ranking, y = disconnected_components_bike)) + 
   geom_point(aes(colour = place_names), size = 4)
 
+# TESTING - REMOVE LATER
+#new_df <- streets[, c("disconnected_components_bike", "place_names")]
 
 
 
@@ -267,34 +273,6 @@ som_function <- function(dataframe, dataframe.sc){
   # set a seed for repoducablity
   set.seed(7)
   
-  process <- preProcess(dataframe, method=c('range'))
-  norm_scale <- predict(process, dataframe)
-  norm_scale$id_pd <- behaviours$id_pd
-  norm_scale <- norm_scale %>% dplyr::select(id_pd, everything())
-  
-  # Generate matrix
-  m <- as.matrix(norm_scale[-1])
-  
-  # Distance matrix
-  distance <- get_dist(m, method='manhattan')
-  
-  # Algorithm
-  hc <- hclust(distance, method='ward.D')
-  
-  # Dendogram
-  plot(hc, labels = FALSE)
-  rect.hclust(hc,k=8,border = 2:5)
-  
-  # Clusters
-  clusters <- cutree(hc,8)
-  norm_scale$hc_cluster <- clusters
-  
-  # Results
-  results_hc <- norm_scale[-1] %>% group_by(hc_cluster) %>% 
-    dplyr::summarize_all(list(mean = mean)) %>% 
-    as.data.frame() %>% 
-    mutate(hc_cluster = as.factor(hc_cluster))
-  
   # define a grid for the SOM and train
   dataframe.som <- som(dataframe.sc, grid = somgrid(9,6, topo = "hexagonal"), rlen = 20000 )
   plot(dataframe.som, type = 'codes', codeRendering = "segments",  bgcol = "transparent", border = TRUE)
@@ -318,7 +296,8 @@ som_function(bike_streets, bike_streets.sc)
 ### testing ###
 
 ## creating cluster groups
-
+  
+  
 #bike_streets.som <- som(bike_streets.sc, grid = somgrid(9,6, topo = 'hexagonal'))
 #plot(bike_streets.som, type = 'codes', codeRendering = "segments",  bgcol = "transparent", border = TRUE)
 #bike_streets.som.hc <- cutree(hclust(dist(bike_streets.som$codes)) ,h = 5)
